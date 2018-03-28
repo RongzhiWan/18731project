@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.contrib.tensor_forest.python import tensor_forest
 import sys
 
 
@@ -29,12 +30,12 @@ class RandomForestClassify():
         self.model_file = model_file
         tf.reset_default_graph()
         self._init_network()
-        self.saver = tf.train.Saver(max_to_keep=None)
+        #self.saver = tf.train.Saver(max_to_keep=None)
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
 
     # train
-    def train(x_train, y_train):
+    def train(self, x_train, y_train):
         ''' Public method to train the network
 
         Args:
@@ -46,11 +47,13 @@ class RandomForestClassify():
         Returns:
             None
         '''
-        _, l = sess.run([self.train_op, self.loss_op], feed_dict={X: x_train, Y: y_train})
+        # _, l = self.sess.run([self.train_op, self.loss_op], feed_dict={self.X: x_train, self.Y: y_train})
+        self.classifier.fit(x=x_train, y=y_train)
         if (self.model_file != None):
             self.saver.save(self.sess, self.model_file)
+        return
 
-    def test(x_test):
+    def test(self, x_test):
         ''' Public method to test the network
 
         Args:
@@ -63,24 +66,30 @@ class RandomForestClassify():
         '''
         if (self.model_file != None):
             self.saver.restore(self.sess, self.model_file)
-        y_out = self.sess.run([self.predict], feed_dict={self.X: x_test})
+        # [y_out] = self.sess.run([self.infer_op], feed_dict={self.X: x_test})
+        y_out = self.classifier.predict(x=x_test)
         return y_out
 
-    def _init_network():
+    def _init_network(self):
         ''' Private function to init the Tensorflow network
 
         init network with the class attributes set by __init__.
         '''
-        hparams = tf.contrib.tensor_forest.python.tensor_forest.ForestHParams(
-            num_classes=self.num_classes, num_features=self.num_features, regression=False,
-            num_trees=self.num_trees, max_nodes=self.max_nodes)
+        hparams = tensor_forest.ForestHParams(
+            num_classes=self.num_classes, 
+            num_features=self.num_features, 
+            regression=False,
+            num_trees=self.num_trees, 
+            max_nodes=self.max_nodes).fill()
 
-        forest_graph = tensor_forest.RandomForestGraphs(hparams)
-        self.X = tf.placeholder(tf.float32, shape=[None, self.num_features])
-        self.Y = tf.placeholder(tf.float32, shape=[None, self.num_features])
-        self.train_op = forest_graph.training_graph(self.X, self.Y)
-        self.loss_op = forest_graph.training_loss(self.X, self.Y)
-        infer_op, _, _ = forest_graph.inference_graph(self.X)
-        self.predict = infer_op / tf.reduce_sum(infer_op, axis=1, keep_dims=True)
-        correct_prediction = tf.equal(tf.argmax(infer_op, 1), tf.cast(self.Y, tf.int64))
-        self.accuracy_op = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        # forest_graph = tensor_forest.RandomForestGraphs(hparams)
+        # self.X = tf.placeholder(tf.float32, shape=[None, self.num_features])
+        # self.Y = tf.placeholder(tf.int32, shape=[None])
+        # self.train_op = forest_graph.training_graph(self.X, self.Y)
+        # self.loss_op = forest_graph.training_loss(self.X, self.Y)
+        # self.infer_op = forest_graph.inference_graph(self.X)
+        # self.predict = self.infer_op / tf.reduce_sum(self.infer_op, axis=1, keep_dims=True)
+        # correct_prediction = tf.equal(tf.argmax(self.infer_op, 1), tf.cast(self.Y, tf.int64))
+        # self.accuracy_op = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+        self.classifier = tf.contrib.tensor_forest.client.random_forest.TensorForestEstimator(hparams)
