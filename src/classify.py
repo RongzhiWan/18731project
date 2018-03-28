@@ -4,8 +4,8 @@ from os import path
 import random
 from pyxdameraulevenshtein import damerau_levenshtein_distance, normalized_damerau_levenshtein_distance
 
-device_type_num = 27
-feature_num = 23
+device_type_num = 2#27 test
+feature_num = 3 #23 test
 sample_num = 5 # number of samples for type edit distance calculation
 
 
@@ -42,23 +42,20 @@ def load_classification_res(path):
             entry = line.rstrip()
             cols = entry.split()
 
-            if first_entry:
-                # keep down the number of potential device type for classificaiton
-                f_num = len(cols)
-
             list = []  # contain device type this device has been assigned to
             id = 0 # current device id
             for e in cols:#for each classification result
+
                 id += 1
                 if e == '0':
                     continue
-                list.append(str(id))
+                list.append(str(id-1))
 
-            res_entry = " ".join(list)
-            print res_entry
-            data.append(res_entry)
+            #res_entry = " ".join(list)
+            #print res_entry
+            data.append(list)
 
-    return f_num, data
+    return data
 
 
 '''
@@ -79,7 +76,7 @@ def load_training_data(dir_path,device_type_num):
     list = []
     for device_type in range(0,device_type_num):
 
-        file_path = path.join(dir_path,str(device_type))
+        file_path = path.join(dir_path,str(device_type)+".txt")
 
         matrix_list = load_training_data_one_device_type(file_path)
 
@@ -206,17 +203,19 @@ def assign_type(classificaiton_result, ground_truth_fingerprints, test_fingerpri
         fingerpirnt_to_classify = test_fingerprints[i]
         potential_type_list = classificaiton_result[i]
 
-        max_score = 0
+        min_score = sys.maxint
+        device_type = 0
         for type in potential_type_list:
+
             type = int(type)
             sampled_fingerprint_list = random_sample(sample_num,ground_truth_fingerprints[type])
 
             score = calculate_global_dissimilarity_score(fingerpirnt_to_classify,sampled_fingerprint_list)
 
-            if score > max_score:
-                max_score = score
+            if score < min_score:
+                min_score = score
                 device_type = type
-
+        print "\ttesting data %d classified as type %d" %(i,device_type)
         res.append(device_type)
 
     return res
@@ -266,13 +265,13 @@ Returns:
 
 def calculate_global_dissimilarity_score(test_fingerprint,sampled_fingerprints):
 
-    scores_list = [] # store scores between each test_fingerprint,sampled_fingerprint pajrs
+    scores_list = np.array([])# store scores between each test_fingerprint,sampled_fingerprint pajrs
     test_fingerprint_word,sampled_fingerprint_word_list = fingerprint2word(test_fingerprint, sampled_fingerprints)
 
     for sampled_fingerprint_word in sampled_fingerprint_word_list:
 
         distance = damerau_levenshtein_distance(sampled_fingerprint_word, test_fingerprint_word)
-        scores_list.append(distance)
+        scores_list = np.append(scores_list,distance)
 
     normalized_scores_list = scores_list / float(max(scores_list))
 
@@ -313,7 +312,7 @@ def fingerprint2word(test_fingerprint,sampled_fingerprint_list):
 
     sampled_fingerprint_word_list = []
     for fingerprint in sampled_fingerprint_list:
-        sampled_fingerprint_word_list.append(fingerprint2id(fingerprint))
+        sampled_fingerprint_word_list.append(fingerprint2id(fingerprint,id_map))
 
     return test_fingerprint_word, sampled_fingerprint_word_list
 
@@ -355,7 +354,7 @@ def gen_packet2id_map(fingerprint_list):
             packet_str = np.array2string(packet_ary)
 
             if packet_str not in map:
-                id = len(dict)
+                id = len(map)
                 map[packet_str] = id
 
     return map
@@ -449,6 +448,10 @@ def persist(list,out_path):
     f_out.close()
 
 
+def my_print(str):
+    sys.stdout.write(str)
+    sys.stdout.flush()
+
 """--------------------------------------------------- main --------------------------------------------------------"""
 
 
@@ -461,6 +464,7 @@ def main():
     test_fingerprints_path = sys.argv[3]
     output_path = sys.argv[4]
 
+    my_print("Loadint data...")
     # classification output of the trained model
     classification_result = load_classification_res(classification_result_path)
     # 27 lists of fingerprints
@@ -468,12 +472,18 @@ def main():
     # list of fingerprints to classify
     test_fingerprints = load_training_data_one_device_type(test_fingerprints_path)
 
+    print "Done"
+
+    print("Classifying...")
     # classify input data
     type_list = assign_type(classification_result, ground_truth_fingerprints, test_fingerprints)
 
     one_hot_vector_list = gen_one_hot_vector(type_list,feature_num)
+    print "Done"
 
+    my_print("Storing result...")
     persist(one_hot_vector_list, output_path)
+    print "Result stored in \"%s\"" %(output_path)
 
 
 
