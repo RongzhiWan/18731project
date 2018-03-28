@@ -4,8 +4,8 @@ from os import path
 import random
 from pyxdameraulevenshtein import damerau_levenshtein_distance, normalized_damerau_levenshtein_distance
 
-device_type_num = 2#27 test
-feature_num = 3 #23 test
+device_type_num = 27
+feature_num = 23
 sample_num = 5 # number of samples for type edit distance calculation
 
 
