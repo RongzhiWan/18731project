@@ -5,12 +5,14 @@ import dpkt
 import json
 import socket
 
-# Input:    32 folders, each contains number of ".pcap" files
-# Output:   32 ".txt" files, each corresponds to a 23*N matrix, and
+# Input:    31 folders, each contains number of ".pcap" files
+# Output:   27 ".txt" files, each corresponds to some meta data and a flatten 23*N matrix
 #           1 README.txt, contains typeName<->number mapping info
 
-type_mapper = {}    # typeName<->number mapper
-device_type = 0     # initial value for type
+name_mapper = {}    # typeName<->number mapper
+device_num = 0      # initial value for type
+type_mapper = {}
+type_num = 0
 ip_counter = {}     # distinct ip Addr counter
 ip_cnt = 1          # initial value for dst IP addr counter
 
@@ -36,10 +38,35 @@ def flatten(matrix):
     return " ".join(list)
 
 
-path = '../captures_IoT-Sentinel/'
+path = '../data/capture'
 for type_path in glob.glob(os.path.join(path, '*/')):           # for each type folder
-    type_str = type_path.split("/")[2]
-    type_mapper[type_str] = device_type  # map type name to type number
+    type_str = type_path.split("/")[3]
+    print(type_path)
+    name_mapper[type_str] = device_num  # map type name to type number
+    doIncre = True
+    if type_str == 'EdimaxCam1' or type_str == 'EdimaxCam2':
+        if 'EdimaxCam' not in type_mapper:
+            type_mapper['EdimaxCam'] = type_num
+        else:
+            doIncre = False
+    elif type_str == 'EdnetCam1' or type_str == 'EdnetCam2':
+        if 'EdnetCam' not in type_mapper:
+            type_mapper['EdnetCam'] = type_num
+        else:
+            doIncre = False
+    elif type_str == 'WeMoInsightSwitch' or type_str == 'WeMoInsightSwitch2':
+        if 'WeMoInsightSwitch' not in type_mapper:
+            type_mapper['WeMoInsightSwitch'] = type_num
+        else:
+            doIncre = False
+    elif type_str == 'WeMoSwitch' or type_str == 'WeMoSwitch2':
+        if 'WeMoSwitch' not in type_mapper:
+            type_mapper['WeMoSwitch'] = type_num
+        else:
+            doIncre = False
+    else:
+        type_mapper[type_str] = type_num
+
     features = 23
     packets = 0
     F = np.zeros((features, packets)).astype(int)
@@ -139,16 +166,34 @@ for type_path in glob.glob(os.path.join(path, '*/')):           # for each type 
 
     # convert to training data format
     F_str = flatten(F)
-    result = str(device_type) + '\t' + str(features) + '\t' + str(packets) + '\t' + F_str
+
+    if type_str == 'EdimaxCam1' or type_str == 'EdimaxCam2':
+        in_matrix_type_num = type_mapper['EdimaxCam']
+
+    elif type_str == 'EdnetCam1' or type_str == 'EdnetCam2':
+        in_matrix_type_num = type_mapper['EdnetCam']
+
+    elif type_str == 'WeMoInsightSwitch' or type_str == 'WeMoInsightSwitch2':
+        in_matrix_type_num = type_mapper['WeMoInsightSwitch']
+
+    elif type_str == 'WeMoSwitch' or type_str == 'WeMoSwitch2':
+        in_matrix_type_num = type_mapper['WeMoSwitch']
+
+    else:
+        in_matrix_type_num = type_mapper[type_str]
+    result = str(in_matrix_type_num) + '\t' + str(features) + '\t' + str(packets) + '\t' + F_str
 
     # save training data to a text file
-    with open('../train/' + str(device_type) + '.txt', "w") as file:
+    with open('../data/output/' + str(device_num) + '.txt', "w") as file:
         file.write("%s" % result)
         file.close()
 
     # increment type number
-    device_type += 1
+    device_num += 1
+    if doIncre:
+        type_num += 1
 
+print(name_mapper)
 # save typeName<->number conversion to text file
-with open('../train/README.txt', 'w') as readMe:
-    readMe.write(json.dumps(type_mapper))
+with open('../data/output/README.txt', 'w') as readMe:
+    readMe.write(json.dumps(name_mapper))
