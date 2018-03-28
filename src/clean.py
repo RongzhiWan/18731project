@@ -68,13 +68,11 @@ for type_path in glob.glob(os.path.join(path, '*/')):           # for each type 
         type_mapper[type_str] = type_num
 
     features = 23
-    packets = 0
-    F = np.zeros((features, packets)).astype(int)
+    F = np.zeros((features, 0)).astype(int)
 
     for cap in glob.glob(os.path.join(type_path, '*.pcap')):        # for each capture
 
         for ts, pkt in dpkt.pcap.Reader(open(cap, 'rb')):           # for each packet
-            packets += 1    # increment number of packets
             col = np.zeros((features, 1)).astype(int)   # initialize a column vector for this packet
             eth = dpkt.ethernet.Ethernet(pkt)
             if eth.type == dpkt.ethernet.ETH_TYPE_ARP:      # f1: ARP
@@ -181,7 +179,11 @@ for type_path in glob.glob(os.path.join(path, '*/')):           # for each type 
 
     else:
         in_matrix_type_num = type_mapper[type_str]
-    result = str(in_matrix_type_num) + '\t' + str(features) + '\t' + str(packets) + '\t' + F_str
+    result = str(in_matrix_type_num) + '\t' + str(F.shape[0]) + '\t' + str(F.shape[1]) + '\t' + F_str
+
+    print(F.shape)
+    print('after split')
+    print(len(F_str.split(' ')))
 
     # save training data to a text file
     with open('../data/output/' + str(device_num) + '.txt', "w") as file:
