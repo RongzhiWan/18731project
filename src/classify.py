@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 from os import path
+import os
 import random
 from pyxdameraulevenshtein import damerau_levenshtein_distance, normalized_damerau_levenshtein_distance
 
@@ -64,25 +65,33 @@ Args:
     device_type_num(int): number of potential device type
 
 Returns:
-    list: a list of matrix list:
+    dict: a dict of matrix list:
 
     e.g.
-        list[0]: matrix list for type 0
+        dict[0]: matrix list for type 0
 
 '''
 
-def load_training_data(dir_path,device_type_num):
+def load_training_data(dir_path):
 
-    list = []
-    for device_type in range(0,device_type_num):
+    dict = {}
+    #for device_type in range(0,device_type_num):
 
-        file_path = path.join(dir_path,str(device_type)+".txt")
+    for filename in os.listdir(dir_path):
 
-        matrix_list = load_training_data_one_device_type(file_path)
+        #file_path = path.join(dir_path,str(device_type)+".txt")
 
-        list.append(matrix_list)
+        file_path = path.join(dir_path,filename)
 
-    return list
+        device_type, matrix_list = load_training_data_one_device_type(file_path)
+
+        if device_type not in dict:
+            dict[device_type] = matrix_list
+        else:
+            dict[device_type].extend(matrix_list)
+
+
+    return dict
 
 
 '''
@@ -99,12 +108,17 @@ Returns:
 def load_training_data_one_device_type(path):
 
     res = []
-
+    first_line_flag = True
+    print path
     with open(path) as f:
         for line in f:
             entry = line.rstrip()
 
             cols = entry.split('\t')
+
+            if first_line_flag:
+                type = int(cols[0])
+                first_line_flag = False
 
             num_row = int(cols[1])
             num_col = int(cols[2])
@@ -113,7 +127,7 @@ def load_training_data_one_device_type(path):
             matrix = str2matrix(num_row, num_col, flatten_matrix)
             res.append(matrix)
 
-    return res
+    return type,res
 
 
 """
@@ -428,7 +442,16 @@ def gen_one_hot_vector(idx_list,length):
 
     res[np.arange(n), idx_list] = 1
 
-    return res
+    list = []
+
+    for l in res:
+        cur_list = []
+        for e in l:
+            cur_list.append(str(int(e)))
+
+        list.append(" ".join(cur_list))
+
+    return list
 
 
 '''
@@ -468,9 +491,9 @@ def main():
     # classification output of the trained model
     classification_result = load_classification_res(classification_result_path)
     # 27 lists of fingerprints
-    ground_truth_fingerprints = load_training_data(training_file_dir,device_type_num)
+    ground_truth_fingerprints = load_training_data(training_file_dir)
     # list of fingerprints to classify
-    test_fingerprints = load_training_data_one_device_type(test_fingerprints_path)
+    type,test_fingerprints = load_training_data_one_device_type(test_fingerprints_path)
 
     print "Done"
 
@@ -484,7 +507,5 @@ def main():
     my_print("Storing result...")
     persist(one_hot_vector_list, output_path)
     print "Result stored in \"%s\"" %(output_path)
-
-
 
 main()
