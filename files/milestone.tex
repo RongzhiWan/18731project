@@ -19,6 +19,7 @@
 
 \usepackage{mdframed, fancyvrb}
 \usepackage[scaled]{beramono}
+\usepackage{indentfirst}
 \definecolor{boxcolor}{gray}{0.9}
 \newmdenv[linecolor=boxcolor, backgroundcolor=boxcolor, skipabove=\parsep, skipbelow=\parsep, innerleftmargin=2pt, innerrightmargin=2pt]{codeblock}
 
@@ -112,6 +113,7 @@ Have you had to rethink any of the original ideas?
 How have you addressed comments from the feedback? 
 What tools and experimental platforms have you setup? 1 page}
 
+\subsection{Feature Extraction}
 Different IoT device types may use different protocols, have different communication patterns, and send packets with different sizes. Such features is the key to differentiate them. In feature extraction phase, to re-implement the experiments in IoT SENTINEL[2], we refer to their selected features, as listed below:
 \begin{enumerate}
   \item Protocol features
@@ -145,11 +147,16 @@ notations:
 
 However, we found these 23 selected features by IoT SENTINEL are not good enough for identifying device types. For example, port numbers are mapped into three categories, instead of keeping their original values. Also, some frequently used IoT protocols such as MQTT is not extracted. In addition, timing features are not recorded, losing communication frequency information. Therefore, one of our next steps will be developing better features selecting mechanisms. We expect to do a series of experiments to figure out what features will yield least classification error.
 
-Random Forest Classifier:.....
+\subsection{Classification}
+Currently we are trying to re-implement the experiments in IoT SENTINEL[2]. The classification model presented by this paper is Random Forest Classifiers followed by Edit Distance classifier. 
 
-Random Forest Classifier produces a candidate list for a device.The second layer of classifier - Edit distance classifier will select the final device type from candidate list. To calculate edit distance for fingerprints, we need to represent fingerprint as a word. Recall that each column in a fingerprint is representing a packet. By assigning a distinct ID for each packet(column), we’ll be able to represent a fingerprint in a word-like manner. A fingerprint with n columns will be represented as a word with n characters.
+The Random Forest Classifiers include one binary random forest classifier for each of the device types, so that there is no need to retrain the entire model when a new device type is added according to the paper[2]. The whole dataset is split evenly into 10 folds and each time one fold is used for testing while the others used in training. During training, the input to each network is the features from the first several packets and whether it belong to this network. During testing, the output from each network will be the possibility that the datapoint belongs to that network. By collecting the possibilities from all the networks, we get a candidate list representing the possible types of this device.
+
+Random Forest Classifier produces a candidate list for a device. The second layer of classifier - Edit distance classifier will select the final device type from this candidate list. To calculate edit distance for fingerprints, we need to represent fingerprint as a word. Recall that each column in a fingerprint is representing a packet. By assigning a distinct ID for each packet(column), we’ll be able to represent a fingerprint in a word-like manner. A fingerprint with n columns will be represented as a word with n characters.
 
 After having word representation for each fingerprint, we can calculate a dissimilarity score for the testing fingerprint with all potential candidate device types. For each candidate device type, 5 fingerprints are randomly sampled as group truth. Edit distance is calculated using Damerau-Levenshtein edit distance algorithm between testing fingerprint and 5 sampled scores. The 5 scores are normalized by dividing the longest distance. Those 5 scores are summed up to calculate the final score for this testing fingerprint with current device type. After calculating a score for all candidates, the device type with smallest dissimilarity score will be chosen as final device type.
+
+As shown in the IoT SENTINEL paper[2], their classification result is not very good for some of the devices. Some device are even more than half as likely to get identified as another type. One way to solve this is by using a better classifier. The current binary random forest classifiers might not be needed to avoid retraining the entire network. A multiple random forest might be sufficient if we are able to save the network. We can reload the network and continue training with the new data if there is a new device type added. 
 
 \section{Preliminary results}
 
