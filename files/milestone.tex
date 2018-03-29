@@ -112,16 +112,53 @@ Have you had to rethink any of the original ideas?
 How have you addressed comments from the feedback? 
 What tools and experimental platforms have you setup? 1 page}
 
+Different IoT device types may use different protocols, have different communication patterns, and send packets with different sizes. Such features is the key to differentiate them. In feature extraction phase, to re-implement the experiments in IoT SENTINEL[2], we refer to their selected features, as listed below:
+\begin{enumerate}
+  \item Protocol features
+  \begin{itemize}
+  \item Link layer protocol: ARP / LLC
+  \item Network layer protocol: IP / ICMP / ICMPv6 / EAPoL
+  \item Transport layer protocol: TCP / UDP
+  \item Application layer protocol: HTTP / HTTPS / DHCP / BOOTP / SSDP / DNS / MDNS / NTP
+  \end{itemize}
+  \item Network layer features
+  \begin{itemize}
+  \item IP options: Padding / RouterAlert
+  \item Packet content:  Size / Raw data
+  \item IP address: Destination IP counter 
+  \end{itemize}
+  \item Transport layer features
+  \begin{itemize}
+  \item Port class: Source / Destination 
+  \end{itemize}
+\end{enumerate}
+
+To extract features from Wireshark-captured raw data, we wrote a Python script using "dpkt" package. Output of this feature extraction phase is $m$ files, each of them contains $k$ lines whose format is presented below. Each fingerprint is represented as a $23*n$ matrix {\bf F}. To facilitate further classification phases, we define our training data as the following format:
+
+{\bf type\_number \textbackslash t F\_row\_cnt \textbackslash t F\_col\_cnt \textbackslash t flattened\_F}
+
+notations:
+\newline $23$: number of features for now
+\newline $n$: number of packets in each capture. 
+\newline $m$: number of devices
+\newline $k$: number of captures for a device. In our case, most of $k$ is 20.
+
+However, we found these 23 selected features by IoT SENTINEL are not good enough for identifying device types. For example, port numbers are mapped into three categories, instead of keeping their original values. Also, some frequently used IoT protocols such as MQTT is not extracted. In addition, timing features are not recorded, losing communication frequency information. Therefore, one of our next steps will be developing better features selecting mechanisms. We expect to do a series of experiments to figure out what features will yield least classification error.
+
 \section{Preliminary results}
 
-{\bf What has  been done to validate the early approach? (E.g.
+{\bf What has been done to validate the early approach? (E.g.
 measurements, simulations, constructing code)  0.5--1 page}
+Considering we only have limited number of IoT devices right now, and in order to get some insights and ideas before diving into the environment setup and real traffic capturing, we first did some experiments on the data captured by IoT SENTINEL[2]. Going further, we consider setting up our own environment to capture traffic. 
 
-Currently we have completed initial implementation of all three components, feature extraction, random forest classifier and edit distance classifier. Further tuning and modification is still in progress. 
+Currently we have completed initial implementation of all three components -- feature extraction, random forest classifier and edit distance classifier. Further tuning and modification is still in progress. 
 
-We also successfully generated device fingerprints from captured raw traffic, and transformed them to a ready-to-train format. The feature extractor, or data cleaner, is based on a Python library "dpkt" that can resolve Wireshark ".pcap" files. By examining packet data, such as IP addresses, port numbers and packet size, we were able to generate fingerprints that describe those features.
+Also, we have successfully generated device fingerprints from the reference data -- Wireshark captured raw traffic by IoT SENTINEL[2], and have transformed them to a ready-to-train format. The feature extractor, or data cleaner, employs a Python library "dpkt" that can resolve Wireshark ".pcap" files. By examining packet data, such as protocol used, IP addresses, port numbers and packet size, we are able to generate fingerprints from the raw data.
 
-Our working repository, including captured data, cleaned data and implementation code can be found here: https://github.com/RongzhiWan/18731project
+According to the reference data, there are 32 devices including various types such as camera, switch, and sensor. Since some devices share the same type, these total 32 devices fall into 27 types. To obtain adequate data, for each of those devices, there are multiple captures. Therefore, we have generated 32 files, each of which contains multiple fingerprints corresponding to each capture.
+
+Our project repository, including captured data, cleaned data and implementation code can be found here:  
+\url{https://github.com/RongzhiWan/18731project}
 
 \section{Stumbling blocks}
 
