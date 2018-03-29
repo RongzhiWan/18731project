@@ -145,6 +145,12 @@ notations:
 
 However, we found these 23 selected features by IoT SENTINEL are not good enough for identifying device types. For example, port numbers are mapped into three categories, instead of keeping their original values. Also, some frequently used IoT protocols such as MQTT is not extracted. In addition, timing features are not recorded, losing communication frequency information. Therefore, one of our next steps will be developing better features selecting mechanisms. We expect to do a series of experiments to figure out what features will yield least classification error.
 
+Random Forest Classifier:.....
+
+Random Forest Classifier produces a candidate list for a device.The second layer of classifier - Edit distance classifier will select the final device type from candidate list. To calculate edit distance for fingerprints, we need to represent fingerprint as a word. Recall that each column in a fingerprint is representing a packet. By assigning a distinct ID for each packet(column), we’ll be able to represent a fingerprint in a word-like manner. A fingerprint with n columns will be represented as a word with n characters.
+
+After having word representation for each fingerprint, we can calculate a dissimilarity score for the testing fingerprint with all potential candidate device types. For each candidate device type, 5 fingerprints are randomly sampled as group truth. Edit distance is calculated using Damerau-Levenshtein edit distance algorithm between testing fingerprint and 5 sampled scores. The 5 scores are normalized by dividing the longest distance. Those 5 scores are summed up to calculate the final score for this testing fingerprint with current device type. After calculating a score for all candidates, the device type with smallest dissimilarity score will be chosen as final device type.
+
 \section{Preliminary results}
 
 {\bf What has been done to validate the early approach? (E.g.
@@ -167,7 +173,13 @@ Our project repository, including captured data, cleaned data and implementation
 
 \section{Next steps  Timeline}
 
-{\bf Bulleted list of milestones for the rest of the project timeline}
+\begin{itemize}
+   \item This week: Tune the module to achieve classification accuracy that is comparable to the result in referenced paper.
+   \item Week 1: Set up experiment environment 
+   \item Week 2: Experiment on feature engineering: Active monitoring, Collecting packets for long term, Keyword extraction
+   \item Week 3: Generalization for unauthorized devices
+   \item Week 4: Work on report and poster
+\end{itemize}
 
 \section{References}
 [1] Intelligence, B. (2018). There will be 24 billion IoT devices installed on Earth by 2020. Business Insider. Retrieved 28 March 2018, from http://www.businessinsider.com/there-will-be-34-billion-iot-devices-installed-on-earth-by-2020-2016-5
