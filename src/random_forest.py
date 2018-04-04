@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from tensorflow.contrib.tensor_forest.python import tensor_forest
 import sys
 
@@ -8,7 +9,7 @@ class RandomForestClassify():
     Wrapper for TensorForest at https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/tensor_forest
     Public functions: __init__, train, test
     '''
-    def __init__(self, num_classes, num_features, num_trees=50, max_nodes=1000, model_file=None):
+    def __init__(self, num_classes, num_features, num_trees=50, max_nodes=1000, model_dir=None):
         ''' Initialization function for class RandomForestClassify
 
         Args:
@@ -16,9 +17,9 @@ class RandomForestClassify():
             num_features (int): number of features each input includes
             num_trees    (int): The number of trees to create. 
             max_nodes    (int): The max number of nodes in each tree.
-            model_file   (str): The file to save or load the network. 
-                                Train will save the trained network to model_file
-                                Test will load the network from model_file
+            model_dir    (str): The file to save or load the network. 
+                                Train will save the trained network to model_dir
+                                Test will load the network from model_dir
 
         Returns:
             None
@@ -27,7 +28,7 @@ class RandomForestClassify():
         self.num_features = num_features
         self.num_trees = num_trees
         self.max_nodes = max_nodes
-        self.model_file = model_file
+        self.model_dir = model_dir
         tf.reset_default_graph()
         self._init_network()
         #self.saver = tf.train.Saver(max_to_keep=None)
@@ -48,9 +49,10 @@ class RandomForestClassify():
             None
         '''
         # _, l = self.sess.run([self.train_op, self.loss_op], feed_dict={self.X: x_train, self.Y: y_train})
+        x_train = x_train.astype(np.float32)
         self.classifier.fit(x=x_train, y=y_train)
-        if (self.model_file != None):
-            self.saver.save(self.sess, self.model_file)
+        # if (self.model_file != None):
+        #     self.saver.save(self.sess, self.model_file)
         return
 
     def test(self, x_test):
@@ -64,10 +66,16 @@ class RandomForestClassify():
             y_out  (float numpy array): The possibility of each data point in each of the classes
                                         If there are M data points, is a M*(num_classes) numpy array
         '''
-        if (self.model_file != None):
-            self.saver.restore(self.sess, self.model_file)
+        # if (self.model_file != None):
+        #     self.saver.restore(self.sess, self.model_file)
         # [y_out] = self.sess.run([self.infer_op], feed_dict={self.X: x_test})
-        y_out = self.classifier.predict(x=x_test)
+        x_test = x_test.astype(np.float32)
+        y_out_gen = self.classifier.predict(x=x_test)
+        y_out = np.zeros((x_test.shape[0], self.num_classes))
+        i = 0
+        for y in y_out_gen:
+            y_out[i] = y['probabilities']
+            i += 1
         return y_out
 
     def _init_network(self):
@@ -92,4 +100,4 @@ class RandomForestClassify():
         # correct_prediction = tf.equal(tf.argmax(self.infer_op, 1), tf.cast(self.Y, tf.int64))
         # self.accuracy_op = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-        self.classifier = tf.contrib.tensor_forest.client.random_forest.TensorForestEstimator(hparams)
+        self.classifier = tf.contrib.tensor_forest.client.random_forest.TensorForestEstimator(hparams, model_dir=self.model_dir)

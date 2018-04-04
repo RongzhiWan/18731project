@@ -33,7 +33,6 @@ def random_forest_data_gather_save(dir_name, data_save_name):
                     X = mat_part
                 else:
                     X = np.append(X, mat_part, axis=0)
-        print c
     Y = Y.reshape(Y.size, 1)
     np.savetxt('{}_Y.csv'.format(data_save_name), Y, delimiter=',', fmt='%i')
     np.savetxt('{}_X.csv'.format(data_save_name), X, delimiter=',')
@@ -42,3 +41,21 @@ def random_forest_data_gather_load(data_save_name):
     X = np.loadtxt('{}_X.csv'.format(data_save_name), delimiter=',')
     Y = np.loadtxt('{}_Y.csv'.format(data_save_name), delimiter=',').astype(int)
     return (X, Y)
+
+
+if __name__ == '__main__':
+    dir_name = '../data/output'
+    rf_output_file = '../data/random_forest/y_out.csv'
+    rf_output = np.loadtxt(rf_output_file, delimiter=',')
+    glob_find = '{}/*.txt'.format(dir_name)
+    c = 0
+    for file in glob.glob(glob_find):
+        if file.find("README") != -1:
+            continue
+        filename, _ = os.path.splitext(file)
+        with open(file) as f:
+            line_count = 0
+            for row in f.readlines():
+                line_count += 1
+        rf_part = rf_output[c:c+line_count, :]
+        np.savetxt('{}_y_out.csv'.format(filename), rf_part, delimiter=',')
