@@ -1,13 +1,20 @@
+import glob
+
 import numpy as np
 import sys
 from os import path
 import os
 import random
+import csv
 from pyxdameraulevenshtein import damerau_levenshtein_distance, normalized_damerau_levenshtein_distance
 
 device_type_num = 27
 feature_num = 23
 sample_num = 5 # number of samples for type edit distance calculation
+
+
+#debug print
+unfinished_data_flag = False
 
 
 """"--------------------------------------------------- Loading data ------------------------------------------------"""
@@ -33,28 +40,68 @@ return:
 
 
 """
+
+def csv2list(path):
+
+    l = []
+    np.set_printoptions(suppress=True)
+    res = np.loadtxt(path, delimiter = ',')
+
+
+    for e in res:
+       # print e
+        l.append(e)
+
+    return l
+
+
+
 def load_classification_res(path):
 
-    first_entry = True
     data = []
 
-    with open(path) as f:
-        for line in f:
-            entry = line.rstrip()
-            cols = entry.split()
+    res = np.loadtxt(path, delimiter=',')
 
-            list = []  # contain device type this device has been assigned to
-            id = 0 # current device id
-            for e in cols:#for each classification result
+    unfinished_cnt = 0
 
-                id += 1
-                if e == '0':
-                    continue
-                list.append(str(id-1))
+    for line in res:
 
-            #res_entry = " ".join(list)
-            #print res_entry
-            data.append(list)
+        #entry = line.rstrip()
+        #cols = entry.split()
+
+        list = []  # contain device type this device has been assigned to
+        id = 0 # current device id
+
+        finished_flag = False
+        has_candicate_flag = False
+
+        for e in line:#for each classification result
+
+            id += 1
+
+            if e != 0:
+                finished_flag = True
+
+            if e < 0.5: #if e == '0':
+                continue
+            else:
+                has_candicate_flag = True
+            list.append(str(id-1))
+
+        if unfinished_data_flag:
+
+            if finished_flag and not has_candicate_flag:
+                print line
+            if not finished_flag:
+                unfinished_cnt +=1
+
+        #res_entry = " ".join(list)
+        #print res_entry
+
+        data.append(list)
+
+    if unfinished_data_flag:
+        print "unfinished_cnt %d" %(unfinished_cnt)
 
     return data
 
@@ -69,6 +116,30 @@ Returns:
 
     e.g.
         dict[0]: matrix list for type 0
+
+'''
+
+def load_training_data(dir_path):
+
+    dict = {}
+    #for device_type in range(0,device_type_num):
+
+    glob_find = '{}/*.txt'.format(dir_path)
+    c = 0
+    for file in glob.glob(glob_find):
+        if file.find("README") != -1:
+            continue
+
+
+        device_type, matrix_list = load_training_data_one_device_type(file)
+
+        if device_type not in dict:
+            dict[device_type] = matrix_list
+        else:
+            dict[device_type].extend(matrix_list)
+
+
+    return dict
 
 '''
 
@@ -92,6 +163,27 @@ def load_training_data(dir_path):
 
 
     return dict
+'''
+
+
+
+def load_testingFingerprint_data(dir_path):
+
+    res = []
+    #for device_type in range(0,device_type_num):
+
+    glob_find = '{}/*.txt'.format(dir_path)
+    c = 0
+    for file in glob.glob(glob_find):
+        if file.find("README") != -1:
+            continue
+
+
+        device_type, matrix_list = load_training_data_one_device_type(file)
+
+        res.extend(matrix_list)
+
+    return res
 
 
 '''
@@ -109,7 +201,7 @@ def load_training_data_one_device_type(path):
 
     res = []
     first_line_flag = True
-    print path
+
     with open(path) as f:
         for line in f:
             entry = line.rstrip()
@@ -117,6 +209,7 @@ def load_training_data_one_device_type(path):
             cols = entry.split('\t')
 
             if first_line_flag:
+
                 type = int(cols[0])
                 first_line_flag = False
 
@@ -217,19 +310,26 @@ def assign_type(classificaiton_result, ground_truth_fingerprints, test_fingerpri
         fingerpirnt_to_classify = test_fingerprints[i]
         potential_type_list = classificaiton_result[i]
 
-        min_score = sys.maxint
-        device_type = 0
-        for type in potential_type_list:
+        if len(potential_type_list) == 0:
+            device_type = -1
+        else:
 
-            type = int(type)
-            sampled_fingerprint_list = random_sample(sample_num,ground_truth_fingerprints[type])
+            min_score = sys.maxint
+            device_type = 0
+            for type in potential_type_list:
 
-            score = calculate_global_dissimilarity_score(fingerpirnt_to_classify,sampled_fingerprint_list)
+                type = int(type)
+                sampled_fingerprint_list = random_sample(sample_num,ground_truth_fingerprints[type])
 
-            if score < min_score:
-                min_score = score
-                device_type = type
-        print "\ttesting data %d classified as type %d" %(i,device_type)
+                score = calculate_global_dissimilarity_score(fingerpirnt_to_classify,sampled_fingerprint_list)
+
+                if score < min_score:
+                    min_score = score
+                    device_type = type
+        print "\ttesting data %d: " %(i),
+        print "potential_type_list ",
+        print potential_type_list ,
+        print " classified as type %d" %(device_type)
         res.append(device_type)
 
     return res
@@ -436,7 +536,7 @@ Returns:
 
 def gen_one_hot_vector(idx_list,length):
 
-    n = len(idx_list)
+    n = len(idx_list)#550
 
     res = np.zeros((n, length))
 
@@ -493,7 +593,7 @@ def main():
     # 27 lists of fingerprints
     ground_truth_fingerprints = load_training_data(training_file_dir)
     # list of fingerprints to classify
-    type,test_fingerprints = load_training_data_one_device_type(test_fingerprints_path)
+    test_fingerprints = load_testingFingerprint_data(training_file_dir)
 
     print "Done"
 
@@ -501,7 +601,7 @@ def main():
     # classify input data
     type_list = assign_type(classification_result, ground_truth_fingerprints, test_fingerprints)
 
-    one_hot_vector_list = gen_one_hot_vector(type_list,feature_num)
+    one_hot_vector_list = gen_one_hot_vector(type_list,device_type_num)
     print "Done"
 
     my_print("Storing result...")
