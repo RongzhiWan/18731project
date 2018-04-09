@@ -15,6 +15,7 @@ sample_num = 5 # number of samples for type edit distance calculation
 
 #debug print
 unfinished_data_flag = False
+log_flag = True
 
 
 """"--------------------------------------------------- Loading data ------------------------------------------------"""
@@ -122,16 +123,20 @@ Returns:
 def load_training_data(dir_path):
 
     dict = {}
+    true_label_list = []
     #for device_type in range(0,device_type_num):
 
     glob_find = '{}/*.txt'.format(dir_path)
-    c = 0
+
     for file in glob.glob(glob_find):
         if file.find("README") != -1:
             continue
 
-
         device_type, matrix_list = load_training_data_one_device_type(file)
+
+        # generate the list of true labels
+        device_num = len(matrix_list)
+        true_label_list += device_num * [device_type]
 
         if device_type not in dict:
             dict[device_type] = matrix_list
@@ -139,7 +144,7 @@ def load_training_data(dir_path):
             dict[device_type].extend(matrix_list)
 
 
-    return dict
+    return dict, true_label_list
 
 '''
 
@@ -297,21 +302,27 @@ Logic:
 """
 
 
-def assign_type(classificaiton_result, ground_truth_fingerprints, test_fingerprints):
+def assign_type(classificaiton_result, ground_truth_fingerprints, test_fingerprints, true_label_list, log_path):
 
     if len(classificaiton_result) != len(test_fingerprints):
         print "ERROR! testing data number and classification result number not match!"
         return -1
 
+    f_log = open(log_path, 'w')
     testing_device_num = len(classificaiton_result)
 
     res = [] # store all classification result for testing fingerprints
+
+    # counters for classifcation error calcularion
+    correct_cnt = 0.0
     for i in range(0,testing_device_num):
         fingerpirnt_to_classify = test_fingerprints[i]
         potential_type_list = classificaiton_result[i]
 
-        if len(potential_type_list) == 0:
+        if len(potential_type_list) == 0:#new device
             device_type = -1
+        elif len(potential_type_list) == 1:
+            device_type = int(potential_type_list[0])
         else:
 
             min_score = sys.maxint
@@ -326,10 +337,29 @@ def assign_type(classificaiton_result, ground_truth_fingerprints, test_fingerpri
                 if score < min_score:
                     min_score = score
                     device_type = type
+
+        correctness = "False"
+        true_label =  true_label_list[i]
+        no_correct_candidate = ""
+
+        if device_type== -1 or device_type == true_label:
+            correct_cnt += 1
+            correctness = "True"
+        elif str(true_label) not in potential_type_list:
+            # no correct candidate
+            no_correct_candidate = "alert: no correct candidate!"
+
+        log = "\ttesting data %d: potential_type_list %s\ttrue type %d, classified as type %d\t%s\tcurrent accuracy %f\t%s" %(i,tuple(potential_type_list),true_label,device_type,correctness,correct_cnt/(i+1),no_correct_candidate)
+        print log
+
+        f_log.write(log + "\n")
+        '''
         print "\ttesting data %d: " %(i),
-        print "potential_type_list ",
+        print "potential_type_list\t",
         print potential_type_list ,
-        print " classified as type %d" %(device_type)
+        print "classified as type %d\t" %(device_type),
+        print "current accuracy %f" %(correct_cnt/(i+1))
+        '''
         res.append(device_type)
 
     return res
@@ -584,14 +614,15 @@ def main():
 
     classification_result_path = sys.argv[1]
     training_file_dir = sys.argv[2]
-    test_fingerprints_path = sys.argv[3]
+    log_path = sys.argv[3]
     output_path = sys.argv[4]
 
     my_print("Loadint data...")
     # classification output of the trained model
     classification_result = load_classification_res(classification_result_path)
     # 27 lists of fingerprints
-    ground_truth_fingerprints = load_training_data(training_file_dir)
+    ground_truth_fingerprints, true_label_list = load_training_data(training_file_dir)
+
     # list of fingerprints to classify
     test_fingerprints = load_testingFingerprint_data(training_file_dir)
 
@@ -599,7 +630,7 @@ def main():
 
     print("Classifying...")
     # classify input data
-    type_list = assign_type(classification_result, ground_truth_fingerprints, test_fingerprints)
+    type_list = assign_type(classification_result, ground_truth_fingerprints, test_fingerprints, true_label_list,log_path)
 
     one_hot_vector_list = gen_one_hot_vector(type_list,device_type_num)
     print "Done"
