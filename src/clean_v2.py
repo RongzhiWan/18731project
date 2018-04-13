@@ -20,6 +20,9 @@ FEATURES
 19.Size (int)  20.Raw data
 21.Destination IP counter (int)
 22.Source (int)  23.Destination (int)
+
+ADDED FEATURES
+24.MQTT 25.IGMP  26.TFTP  27.QUIC  28.STUN
 '''
 
 name_mapper = {}  # typeName<->number mapper
@@ -54,9 +57,9 @@ def flatten(matrix):
 path = '../data/capture'
 for type_path in glob.glob(os.path.join(path, '*/')):  # for each device
     type_str = type_path.split("/")[3]
+    print(type_str)
     name_mapper[type_str] = device_num  # map type name to type number
     doIncre = True
-    print(type_str)
     if type_str == 'EdimaxCam1' or type_str == 'EdimaxCam2':
         if 'EdimaxCam' not in type_mapper:
             type_mapper['EdimaxCam'] = type_num
@@ -80,7 +83,7 @@ for type_path in glob.glob(os.path.join(path, '*/')):  # for each device
     else:
         type_mapper[type_str] = type_num
 
-    features = 23
+    features = 28
     F = ''
 
     for cap in glob.glob(os.path.join(type_path, '*.pcap')):  # for each capture
@@ -133,6 +136,10 @@ for type_path in glob.glob(os.path.join(path, '*/')):  # for each device
                     col[3, 0] = 1
                     continue
 
+                if isinstance(ip.data, dpkt.igmp.IGMP):  # f25: IGMP
+                    col[24, 0] = 1
+                    continue
+
                 try:
                     col[21, 0] = port_mapper(ip.data.sport)  # f22: Source port
                 except AttributeError:  # no port
@@ -148,7 +155,7 @@ for type_path in glob.glob(os.path.join(path, '*/')):  # for each device
                     tcp_port = ip.data.dport
                     if tcp_port == 80:  # f9: HTTP
                         col[8, 0] = 1
-                    elif tcp_port == 443:  # f10: HTTPS
+                    elif tcp_port == 443 or ip.data.sport == 443:  # f10: HTTPS
                         col[9, 0] = 1
                     # ref: support.microsoft.com/en-us/help/832017
                     elif tcp_port == 2869:
@@ -169,15 +176,22 @@ for type_path in glob.glob(os.path.join(path, '*/')):  # for each device
                         col[14, 0] = 1  # f15: mDNS
                     elif udp_port == 123:
                         col[15, 0] = 1  # f16: NTP
+                    elif udp_port == 69:
+                        col[25, 0] = 1  # f26: TFTP
+                    elif udp_port == 80:
+                        col[26, 0] = 1  # f27: QUIC
 
                 # Protocols over both TCP and UDP
                 try:
                     trans_port = ip.data.dport
                     if trans_port == 53:
                         col[13, 0] = 1  # f14: DNS
+                    elif trans_port == 1883 or trans_port == 8883:
+                        col[23, 0] = 1  # f24: MQTT
+                    elif trans_port == 3478 or trans_port == 5349:
+                        col[27, 0] = 1  # f28: STUN
                 except AttributeError:
                     continue
-
             # for each packet
             F_cap = np.hstack((F_cap, col))
 
@@ -204,7 +218,7 @@ for type_path in glob.glob(os.path.join(path, '*/')):  # for each device
         F = F + result + '\n'
 
     # for each device
-    with open('../data/output/v1/' + str(device_num) + '.txt', "w") as file:
+    with open('../data/output/v2/' + str(device_num) + '.txt', "w") as file:
         file.write("%s" % F)
         file.close()
 
@@ -216,7 +230,7 @@ for type_path in glob.glob(os.path.join(path, '*/')):  # for each device
 # save typeName<->number conversion to text file
 max_len = max([len(k) for k in name_mapper.keys()])
 padding = 4
-with open('../data/output/v1/README.txt', 'w') as readMe:
+with open('../data/output/v2/README.txt', 'w') as readMe:
     readMe.write('{k:{k_len:d}s} {v:s}'.format(k_len=max_len + padding, k='Device', v='File number') + '\n')
     for k, v in sorted(name_mapper.items(), key=lambda i: i[1]):
         readMe.write('{k:{k_len:d}s} {v:d}'.format(k_len=max_len + padding, v=v, k=k) + '\n')
