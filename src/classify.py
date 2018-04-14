@@ -16,6 +16,14 @@ sample_num = 5 # number of samples for type edit distance calculation
 #debug print
 unfinished_data_flag = False
 log_flag = True
+classify_unknown_device = True # if false, unknown device will be ignored in accuracy rate
+only_classify_unknown_device = False
+
+log_name = "classify_unknown"  if classify_unknown_device else "not_classify_unknown"
+
+if only_classify_unknown_device:
+    log_name = "only_classify_unknown_device"
+    classify_unknown_device = True
 
 
 """"--------------------------------------------------- Loading data ------------------------------------------------"""
@@ -308,31 +316,45 @@ def assign_type(classificaiton_result, ground_truth_fingerprints, test_fingerpri
         print "ERROR! testing data number and classification result number not match!"
         return -1
 
-    f_log = open(log_path, 'w')
+    f_log = open("%s/log_%s.txt" %(log_path, log_name ), 'w')
     testing_device_num = len(classificaiton_result)
 
     res = [] # store all classification result for testing fingerprints
 
     # counters for classifcation error calcularion
     correct_cnt = 0.0
+    total_cnt = 0.0
     for i in range(0,testing_device_num):
         fingerpirnt_to_classify = test_fingerprints[i]
         potential_type_list = classificaiton_result[i]
 
-        if len(potential_type_list) == 0:#new device
-            device_type = -1
-        elif len(potential_type_list) == 1:
+        if only_classify_unknown_device:
+            if len(potential_type_list) != 0:# not new device
+                continue
+
+        total_cnt += 1
+        if len(potential_type_list) == 1:
             device_type = int(potential_type_list[0])
+        elif not classify_unknown_device and len(potential_type_list) == 0:
+            device_type = -1
         else:
+            if len(potential_type_list) == 0:#new device
+                potential_type_list = list(range(0, device_type_num))
+                potential_type_list = map(str, potential_type_list)
 
             min_score = sys.maxint
             device_type = 0
             for type in potential_type_list:
 
                 type = int(type)
-                sampled_fingerprint_list = random_sample(sample_num,ground_truth_fingerprints[type])
 
-                score = calculate_global_dissimilarity_score(fingerpirnt_to_classify,sampled_fingerprint_list)
+                first_path = True
+                cheat_flag = False
+
+                while first_path or cheat_flag:
+                    first_path = False
+                    sampled_fingerprint_list = random_sample(sample_num, ground_truth_fingerprints[type])
+                    score,cheat_flag = calculate_global_dissimilarity_score(fingerpirnt_to_classify, sampled_fingerprint_list)
 
                 if score < min_score:
                     min_score = score
@@ -349,7 +371,7 @@ def assign_type(classificaiton_result, ground_truth_fingerprints, test_fingerpri
             # no correct candidate
             no_correct_candidate = "alert: no correct candidate!"
 
-        log = "\ttesting data %d: potential_type_list %s\ttrue type %d, classified as type %d\t%s\tcurrent accuracy %f\t%s" %(i,tuple(potential_type_list),true_label,device_type,correctness,correct_cnt/(i+1),no_correct_candidate)
+        log = "\ttesting data %d: potential_type_list %s\ttrue type %d, classified as type %d\t%s\tcurrent accuracy %f\t%s" %(i,tuple(potential_type_list),true_label,device_type,correctness,correct_cnt/(total_cnt),no_correct_candidate)
         print log
 
         f_log.write(log + "\n")
@@ -412,15 +434,18 @@ def calculate_global_dissimilarity_score(test_fingerprint,sampled_fingerprints):
     scores_list = np.array([])# store scores between each test_fingerprint,sampled_fingerprint pajrs
     test_fingerprint_word,sampled_fingerprint_word_list = fingerprint2word(test_fingerprint, sampled_fingerprints)
 
+    cheat_flag = False # true if the testing sample itself is sampled
     for sampled_fingerprint_word in sampled_fingerprint_word_list:
 
         distance = damerau_levenshtein_distance(sampled_fingerprint_word, test_fingerprint_word)
+        if distance == 0:
+            cheat_flag = True
         scores_list = np.append(scores_list,distance)
 
     normalized_scores_list = scores_list / float(max(scores_list))
 
     global_score = sum(normalized_scores_list)
-    return global_score
+    return global_score,cheat_flag
 
 """
 
