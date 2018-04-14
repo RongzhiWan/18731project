@@ -28,7 +28,7 @@ def main(args):
     num_data = Y.shape[0]
     num_features = X.shape[1]
     y_out = np.zeros((num_data, num_classes))
-    if not os.path.exists(args.model_folder):
+    if args.model_folder and (not os.path.exists(args.model_folder)):
         os.makedirs(args.model_folder)
     split_array = []
     for j in range(num_classes):
@@ -56,7 +56,10 @@ def main(args):
         for j in range(num_classes):
             # create classifier
             print('start training fold {} class {}'.format(i, j))
-            classifiers[j] = RandomForestClassify(2, num_features, model_dir='{}/fold{}_class{}'.format(args.model_folder, i, j))
+            if (args.model_folder):
+                classifiers[j] = RandomForestClassify(2, num_features, model_dir='{}/fold{}_class{}'.format(args.model_folder, i, j))
+            else:
+                classifiers[j] = RandomForestClassify(2, num_features)
 
             pos_data_idx = np.where(Y_train == j)[0]
             neg_data_idx = np.array(random.sample(range(Y_train.size), num_neg_data))
