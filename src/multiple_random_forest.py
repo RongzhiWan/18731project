@@ -9,8 +9,8 @@ from data_process import *
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Device-type identification from packet features')
     parser.add_argument('--train', dest='train', type=int, default=1)
-    parser.add_argument('--data_file', dest='data_file', type=str, required=True)
-    parser.add_argument('--data_folder', dest='data_folder', type=str)
+    parser.add_argument('--data_file', dest='data_file', type=str, default='../data/random_forest/v2/data')
+    parser.add_argument('--data_folder', dest='data_folder', type=str, default='../data/output/v2')
     parser.add_argument('--data_gathered', dest='data_gathered', type=int, default=1)
     parser.add_argument('--model_folder', dest='model_folder', type=str)
     parser.add_argument('--test', dest='test', type=int, default=1)
@@ -62,7 +62,8 @@ def main(args):
                 classifiers[j] = RandomForestClassify(2, num_features)
 
             pos_data_idx = np.where(Y_train == j)[0]
-            neg_data_idx = np.array(random.sample(range(Y_train.size), num_neg_data))
+            neg_data_idx = np.where(Y_train != j)[0]
+            neg_data_idx = np.array(random.sample(neg_data_idx.tolist(), num_neg_data))
             train_data_idx = np.append(pos_data_idx, neg_data_idx)
             x_train = X_train[train_data_idx, :]
             y_train = Y_train[train_data_idx]
