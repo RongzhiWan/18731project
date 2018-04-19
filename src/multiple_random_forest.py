@@ -25,6 +25,7 @@ def main(args):
     num_folds = 10
     num_neg_data = 200
     num_classes = 27
+    num_splits = None
     num_data = Y.shape[0]
     num_features = X.shape[1]
     y_out = np.zeros((num_data, num_classes))
@@ -57,13 +58,13 @@ def main(args):
             # create classifier
             print('start training fold {} class {}'.format(i, j))
             if (args.model_folder):
-                classifiers[j] = RandomForestClassify(2, num_features, model_dir='{}/fold{}_class{}'.format(args.model_folder, i, j))
+                classifiers[j] = RandomForestClassify(2, num_features, model_dir='{}/fold{}_class{}'.format(args.model_folder, i, j), num_splits_to_consider=num_splits)
             else:
-                classifiers[j] = RandomForestClassify(2, num_features)
+                classifiers[j] = RandomForestClassify(2, num_features, num_splits_to_consider=num_splits)
 
             pos_data_idx = np.where(Y_train == j)[0]
             neg_data_idx = np.where(Y_train != j)[0]
-            neg_data_idx = np.array(random.sample(neg_data_idx.tolist(), num_neg_data))
+            # neg_data_idx = np.array(random.sample(neg_data_idx.tolist(), num_neg_data))
             train_data_idx = np.append(pos_data_idx, neg_data_idx)
             x_train = X_train[train_data_idx, :]
             y_train = Y_train[train_data_idx]
