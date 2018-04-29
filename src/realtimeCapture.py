@@ -14,13 +14,6 @@ mac_cnt = 0  # how many packets have been captured for this MAC
 mac_capture = {}  # each mac addr has one mac_capture to save fingerprint
 
 
-# class structure:
-#     def __init__(self, macAddr, fingerPrint):
-#         self.mac = macAddr
-#         self.counter = 0
-#         self.fingerprint = fingerPrint
-
-
 def port_mapper(port):
     if port in range(0, 1023):
         return 1
