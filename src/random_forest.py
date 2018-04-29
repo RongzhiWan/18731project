@@ -67,8 +67,6 @@ class RandomForestClassify():
             y_out  (float numpy array): The possibility of each data point in each of the classes
                                         If there are M data points, is a M*(num_classes) numpy array
         '''
-        if len(x_predict.shape) == 1:
-            x_predict = np.reshape(x_predict, [1, x_predict.shape[0]])
         n = x_predict.shape[0]
         x_predict = x_predict.astype(np.float32)
         y_out_gen = self.predictor({'x': x_predict})

@@ -12,6 +12,8 @@ class DeviceTypeClassifier():
             self.classifiers[j] = RandomForestClassify(2, num_features, model_dir='{}/fold0_class{}'.format(model_folder, j))
     
     def classify(self, x_classify):
+        if len(x_classify.shape) == 1:
+            x_classify = np.reshape(x_classify, [1, x_classify.shape[0]])
         num_data = x_classify.shape[0]
         y_out = np.zeros((num_data, self.num_classes))
         for j in range(self.num_classes):
