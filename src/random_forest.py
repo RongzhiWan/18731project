@@ -9,7 +9,7 @@ class RandomForestClassify():
     Wrapper for TensorForest at https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/tensor_forest
     Public functions: __init__, train, test
     '''
-    def __init__(self, num_classes, num_features, num_trees=50, max_nodes=1000, model_dir=None):
+    def __init__(self, num_classes, num_features, num_trees=50, max_nodes=1000, model_dir=None, num_splits_to_consider=None):
         ''' Initialization function for class RandomForestClassify
 
         Args:
@@ -29,6 +29,7 @@ class RandomForestClassify():
         self.num_trees = num_trees
         self.max_nodes = max_nodes
         self.model_dir = model_dir
+        self.num_splits_to_consider = num_splits_to_consider
         tf.reset_default_graph()
         self._init_network()
         #self.saver = tf.train.Saver(max_to_keep=None)
@@ -83,12 +84,21 @@ class RandomForestClassify():
 
         init network with the class attributes set by __init__.
         '''
-        hparams = tensor_forest.ForestHParams(
-            num_classes=self.num_classes, 
-            num_features=self.num_features, 
-            regression=False,
-            num_trees=self.num_trees, 
-            max_nodes=self.max_nodes).fill()
+        if (self.num_splits_to_consider):
+            hparams = tensor_forest.ForestHParams(
+                num_classes=self.num_classes, 
+                num_features=self.num_features, 
+                regression=False,
+                num_trees=self.num_trees, 
+                max_nodes=self.max_nodes,
+                num_splits_to_consider=self.num_splits_to_consider).fill()
+        else:
+            hparams = tensor_forest.ForestHParams(
+                num_classes=self.num_classes, 
+                num_features=self.num_features, 
+                regression=False,
+                num_trees=self.num_trees, 
+                max_nodes=self.max_nodes).fill()
 
         # forest_graph = tensor_forest.RandomForestGraphs(hparams)
         # self.X = tf.placeholder(tf.float32, shape=[None, self.num_features])

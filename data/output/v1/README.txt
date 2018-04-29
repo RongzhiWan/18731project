@@ -1,32 +1,32 @@
-Device                 File number
-HueSwitch              0
-D-LinkHomeHub          1
-WeMoInsightSwitch2     2
-EdnetCam1              3
-D-LinkDayCam           4
-WeMoSwitch             5
-EdnetGateway           6
-Withings               7
-D-LinkDoorSensor       8
-EdimaxCam2             9
-D-LinkCam              10
-WeMoLink               11
-TP-LinkPlugHS110       12
-EdnetCam2              13
-iKettle2               14
-TP-LinkPlugHS100       15
-Aria                   16
-SmarterCoffee          17
-HomeMaticPlug          18
-MAXGateway             19
-Lightify               20
-D-LinkWaterSensor      21
-D-LinkSwitch           22
-EdimaxCam1             23
-D-LinkSensor           24
-EdimaxPlug1101W        25
-WeMoInsightSwitch      26
-D-LinkSiren            27
-WeMoSwitch2            28
-EdimaxPlug2101W        29
-HueBridge              30
+Device                 File number	Class number
+HueSwitch              0		0
+D-LinkHomeHub          1		1
+WeMoInsightSwitch2     2		2
+EdnetCam1              3		3
+D-LinkDayCam           4		4
+WeMoSwitch             5		5
+EdnetGateway           6		6
+Withings               7		7
+D-LinkDoorSensor       8		8
+EdimaxCam2             9		9
+D-LinkCam              10		10
+WeMoLink               11		11
+TP-LinkPlugHS110       12		12
+EdnetCam2              13		3
+iKettle2               14		13
+TP-LinkPlugHS100       15		14
+Aria                   16		15
+SmarterCoffee          17		16
+HomeMaticPlug          18		17
+MAXGateway             19		18
+Lightify               20		19
+D-LinkWaterSensor      21		20
+D-LinkSwitch           22		21
+EdimaxCam1             23		9
+D-LinkSensor           24		22
+EdimaxPlug1101W        25		23
+WeMoInsightSwitch      26		2
+D-LinkSiren            27		24
+WeMoSwitch2            28		5
+EdimaxPlug2101W        29		25
+HueBridge              30		26
