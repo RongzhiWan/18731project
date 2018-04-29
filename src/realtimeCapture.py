@@ -53,6 +53,38 @@ def mac_addr(address):
     return ':'.join('%02x' % compat_ord(b) for b in address)
 
 
+def add_packet_to_fingerprint(srcMAC, dstMAC, mac_counter, mac_capture, finger_num, col):
+    # add to srcMAC fingerprint
+    counter_temp = mac_counter[srcMAC]
+    F_cap_temp = mac_capture[srcMAC]
+    if counter_temp < finger_num:
+        mac_capture[srcMAC] = np.hstack((F_cap_temp, col))
+        mac_counter[srcMAC] += 1
+    elif counter_temp == finger_num:
+        F_str_temp = flatten(F_cap_temp)
+        result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(F_cap_temp.shape[1]) + '\t' + F_str_temp
+        F = result_temp + '\n'
+        with open('../data/output/' + str(srcMAC) + '.txt', "w") as file:
+            file.write("%s" % F)
+            file.close()
+            # TODO: Classify this MAC
+
+    # add to dstMAC fingerprint
+    counter_temp = mac_counter[dstMAC]
+    F_cap_temp = mac_capture[dstMAC]
+    if counter_temp < finger_num:
+        mac_capture[dstMAC] = np.hstack((F_cap_temp, col))
+        mac_counter[dstMAC] += 1
+    elif counter_temp == finger_num:
+        F_str_temp = flatten(F_cap_temp)
+        result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(F_cap_temp.shape[1]) + '\t' + F_str_temp
+        F = result_temp + '\n'
+        with open('../data/output/' + str(dstMAC) + '.txt', "w") as file:
+            file.write("%s" % F)
+            file.close()
+            # TODO: Classify this MAC
+
+
 sniffer = pcap.pcap(name=None, promisc=True, immediate=True)
 
 features = 28
@@ -85,34 +117,7 @@ for timestamp, raw_buf in sniffer:
 
     if eth.type == dpkt.ethernet.ETH_TYPE_ARP:  # f1: ARP
         col[0, 0] = 1
-
-        # add to srcMAC fingerprint
-        counter_temp = mac_counter[srcMAC]
-        F_cap_temp = mac_capture[srcMAC]
-        if counter_temp < finger_num:
-            mac_capture[srcMAC] = np.hstack((F_cap_temp, col))
-            mac_counter[srcMAC] += 1
-        elif counter_temp == finger_num:
-            F_str_temp = flatten(F_cap_temp)
-            result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(F_cap_temp.shape[1]) + '\t' + F_str_temp
-            F = result_temp + '\n'
-            with open('../data/output/' + str(srcMAC) + '.txt', "w") as file:
-                file.write("%s" % F)
-                file.close()
-
-        # add to dstMAC fingerprint
-        counter_temp = mac_counter[dstMAC]
-        F_cap_temp = mac_capture[dstMAC]
-        if counter_temp < finger_num:
-            mac_capture[dstMAC] = np.hstack((F_cap_temp, col))
-            mac_counter[dstMAC] += 1
-        elif counter_temp == finger_num:
-            F_str_temp = flatten(F_cap_temp)
-            result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(F_cap_temp.shape[1]) + '\t' + F_str_temp
-            F = result_temp + '\n'
-            with open('../data/output/' + str(dstMAC) + '.txt', "w") as file:
-                file.write("%s" % F)
-                file.close()
+        add_packet_to_fingerprint(srcMAC, dstMAC, mac_counter, mac_capture, finger_num, col)
         continue
 
     if isinstance(eth.data, dpkt.llc.LLC):  # f2: LLC
@@ -122,67 +127,14 @@ for timestamp, raw_buf in sniffer:
         ipv6 = eth.data
         if isinstance(ipv6.data, dpkt.icmp.ICMP):  # f5: ICMPv6
             col[4, 0] = 1
-
-        # add to srcMAC fingerprint
-        counter_temp = mac_counter[srcMAC]
-        F_cap_temp = mac_capture[srcMAC]
-        if counter_temp < finger_num:
-            mac_capture[srcMAC] = np.hstack((F_cap_temp, col))
-            mac_counter[srcMAC] += 1
-        elif counter_temp == finger_num:
-            F_str_temp = flatten(F_cap_temp)
-            result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(F_cap_temp.shape[1]) + '\t' + F_str_temp
-            F = result_temp + '\n'
-            with open('../data/output/' + str(srcMAC) + '.txt', "w") as file:
-                file.write("%s" % F)
-                file.close()
-
-        # add to dstMAC fingerprint
-        counter_temp = mac_counter[dstMAC]
-        F_cap_temp = mac_capture[dstMAC]
-        if counter_temp < finger_num:
-            mac_capture[dstMAC] = np.hstack((F_cap_temp, col))
-            mac_counter[dstMAC] += 1
-        elif counter_temp == finger_num:
-            F_str_temp = flatten(F_cap_temp)
-            result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(F_cap_temp.shape[1]) + '\t' + F_str_temp
-            F = result_temp + '\n'
-            with open('../data/output/' + str(dstMAC) + '.txt', "w") as file:
-                file.write("%s" % F)
-                file.close()
+        add_packet_to_fingerprint(srcMAC, dstMAC, mac_counter, mac_capture, finger_num, col)
         continue
 
     # ref: www.networksorcery.com/enp/protocol/802/ethertypes.htm
     # not sure if this works, because dpkt doesn't have built-in EAPoL type
     if eth.type == 0x888E:  # f6: EAPoL
         col[5, 0] = 1
-        # add to srcMAC fingerprint
-        counter_temp = mac_counter[srcMAC]
-        F_cap_temp = mac_capture[srcMAC]
-        if counter_temp < finger_num:
-            mac_capture[srcMAC] = np.hstack((F_cap_temp, col))
-            mac_counter[srcMAC] += 1
-        elif counter_temp == finger_num:
-            F_str_temp = flatten(F_cap_temp)
-            result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(F_cap_temp.shape[1]) + '\t' + F_str_temp
-            F = result_temp + '\n'
-            with open('../data/output/' + str(srcMAC) + '.txt', "w") as file:
-                file.write("%s" % F)
-                file.close()
-
-        # add to dstMAC fingerprint
-        counter_temp = mac_counter[dstMAC]
-        F_cap_temp = mac_capture[dstMAC]
-        if counter_temp < finger_num:
-            mac_capture[dstMAC] = np.hstack((F_cap_temp, col))
-            mac_counter[dstMAC] += 1
-        elif counter_temp == finger_num:
-            F_str_temp = flatten(F_cap_temp)
-            result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(F_cap_temp.shape[1]) + '\t' + F_str_temp
-            F = result_temp + '\n'
-            with open('../data/output/' + str(dstMAC) + '.txt', "w") as file:
-                file.write("%s" % F)
-                file.close()
+        add_packet_to_fingerprint(srcMAC, dstMAC, mac_counter, mac_capture, finger_num, col)
         continue
 
     # "or eth.type == dpkt.ethernet.ETH_TYPE_IP6" ?
@@ -209,68 +161,12 @@ for timestamp, raw_buf in sniffer:
 
         if isinstance(ip.data, dpkt.icmp.ICMP):  # f4: ICMP
             col[3, 0] = 1
-            # add to srcMAC fingerprint
-            counter_temp = mac_counter[srcMAC]
-            F_cap_temp = mac_capture[srcMAC]
-            if counter_temp < finger_num:
-                mac_capture[srcMAC] = np.hstack((F_cap_temp, col))
-                mac_counter[srcMAC] += 1
-            elif counter_temp == finger_num:
-                F_str_temp = flatten(F_cap_temp)
-                result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(
-                    F_cap_temp.shape[1]) + '\t' + F_str_temp
-                F = result_temp + '\n'
-                with open('../data/output/' + str(srcMAC) + '.txt', "w") as file:
-                    file.write("%s" % F)
-                    file.close()
-
-            # add to dstMAC fingerprint
-            counter_temp = mac_counter[dstMAC]
-            F_cap_temp = mac_capture[dstMAC]
-            if counter_temp < finger_num:
-                mac_capture[dstMAC] = np.hstack((F_cap_temp, col))
-                mac_counter[dstMAC] += 1
-            elif counter_temp == finger_num:
-                F_str_temp = flatten(F_cap_temp)
-                result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(
-                    F_cap_temp.shape[1]) + '\t' + F_str_temp
-                F = result_temp + '\n'
-                with open('../data/output/' + str(dstMAC) + '.txt', "w") as file:
-                    file.write("%s" % F)
-                    file.close()
+            add_packet_to_fingerprint(srcMAC, dstMAC, mac_counter, mac_capture, finger_num, col)
             continue
 
         if isinstance(ip.data, dpkt.igmp.IGMP):  # f25: IGMP
             col[24, 0] = 1
-            # add to srcMAC fingerprint
-            counter_temp = mac_counter[srcMAC]
-            F_cap_temp = mac_capture[srcMAC]
-            if counter_temp < finger_num:
-                mac_capture[srcMAC] = np.hstack((F_cap_temp, col))
-                mac_counter[srcMAC] += 1
-            elif counter_temp == finger_num:
-                F_str_temp = flatten(F_cap_temp)
-                result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(
-                    F_cap_temp.shape[1]) + '\t' + F_str_temp
-                F = result_temp + '\n'
-                with open('../data/output/' + str(srcMAC) + '.txt', "w") as file:
-                    file.write("%s" % F)
-                    file.close()
-
-            # add to dstMAC fingerprint
-            counter_temp = mac_counter[dstMAC]
-            F_cap_temp = mac_capture[dstMAC]
-            if counter_temp < finger_num:
-                mac_capture[dstMAC] = np.hstack((F_cap_temp, col))
-                mac_counter[dstMAC] += 1
-            elif counter_temp == finger_num:
-                F_str_temp = flatten(F_cap_temp)
-                result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(
-                    F_cap_temp.shape[1]) + '\t' + F_str_temp
-                F = result_temp + '\n'
-                with open('../data/output/' + str(dstMAC) + '.txt', "w") as file:
-                    file.write("%s" % F)
-                    file.close()
+            add_packet_to_fingerprint(srcMAC, dstMAC, mac_counter, mac_capture, finger_num, col)
             continue
 
         try:
@@ -324,62 +220,8 @@ for timestamp, raw_buf in sniffer:
             elif trans_port == 3478 or trans_port == 5349:
                 col[27, 0] = 1  # f28: STUN
         except AttributeError:
-            # add to srcMAC fingerprint
-            counter_temp = mac_counter[srcMAC]
-            F_cap_temp = mac_capture[srcMAC]
-            if counter_temp < finger_num:
-                mac_capture[srcMAC] = np.hstack((F_cap_temp, col))
-                mac_counter[srcMAC] += 1
-            elif counter_temp == finger_num:
-                F_str_temp = flatten(F_cap_temp)
-                result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(
-                    F_cap_temp.shape[1]) + '\t' + F_str_temp
-                F = result_temp + '\n'
-                with open('../data/output/' + str(srcMAC) + '.txt', "w") as file:
-                    file.write("%s" % F)
-                    file.close()
-
-            # add to dstMAC fingerprint
-            counter_temp = mac_counter[dstMAC]
-            F_cap_temp = mac_capture[dstMAC]
-            if counter_temp < finger_num:
-                mac_capture[dstMAC] = np.hstack((F_cap_temp, col))
-                mac_counter[dstMAC] += 1
-            elif counter_temp == finger_num:
-                F_str_temp = flatten(F_cap_temp)
-                result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(
-                    F_cap_temp.shape[1]) + '\t' + F_str_temp
-                F = result_temp + '\n'
-                with open('../data/output/' + str(dstMAC) + '.txt', "w") as file:
-                    file.write("%s" % F)
-                    file.close()
+            add_packet_to_fingerprint(srcMAC, dstMAC, mac_counter, mac_capture, finger_num, col)
             continue
 
         # for each packet
-        # add to srcMAC fingerprint
-        counter_temp = mac_counter[srcMAC]
-        F_cap_temp = mac_capture[srcMAC]
-        if counter_temp < finger_num:
-            mac_capture[srcMAC] = np.hstack((F_cap_temp, col))
-            mac_counter[srcMAC] += 1
-        elif counter_temp == finger_num:
-            F_str_temp = flatten(F_cap_temp)
-            result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(F_cap_temp.shape[1]) + '\t' + F_str_temp
-            F = result_temp + '\n'
-            with open('../data/output/' + str(srcMAC) + '.txt', "w") as file:
-                file.write("%s" % F)
-                file.close()
-
-        # add to dstMAC fingerprint
-        counter_temp = mac_counter[dstMAC]
-        F_cap_temp = mac_capture[dstMAC]
-        if counter_temp < finger_num:
-            mac_capture[dstMAC] = np.hstack((F_cap_temp, col))
-            mac_counter[dstMAC] += 1
-        elif counter_temp == finger_num:
-            F_str_temp = flatten(F_cap_temp)
-            result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(F_cap_temp.shape[1]) + '\t' + F_str_temp
-            F = result_temp + '\n'
-            with open('../data/output/' + str(dstMAC) + '.txt', "w") as file:
-                file.write("%s" % F)
-                file.close()
+        add_packet_to_fingerprint(srcMAC, dstMAC, mac_counter, mac_capture, finger_num, col)
