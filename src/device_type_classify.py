@@ -4,7 +4,7 @@ logging.getLogger('tensorflow').disabled = True
 from random_forest import RandomForestClassify
 
 class DeviceTypeClassifier():
-    def __init__(self, model_folder, num_classes=27, num_features=336):
+    def __init__(self, model_folder, num_classes=29, num_features=4200):
         self.num_classes = num_classes
         self.num_features = num_features
         self.classifiers = [None] * num_classes

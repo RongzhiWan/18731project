@@ -3,6 +3,7 @@ import socket
 
 import dpkt
 import numpy as np
+import os
 from dpkt.compat import compat_ord
 from device_type_classify import DeviceTypeClassifier
 
@@ -15,10 +16,19 @@ mac_cnt = 0  # how many packets have been captured for this MAC
 mac_capture = {}  # each mac addr has one mac_capture to save fingerprint
 
 features = 28 # number of features each feature have
-finger_num = 50 # number of fingerprints capture
-finger_first_n = 50 # number of fingerprints used for classifying.
+num_classes = 29
+finger_num = 150 # number of fingerprints capture
+finger_first_n = 150 # number of fingerprints used for classifying.
 
-device_classifier = DeviceTypeClassifier(model_folder='../data/random_forest/v2/model', num_features=features*finger_first_n)
+write_types_to = '../front_end/demo731/device_list.txt'
+try:
+    os.remove(write_types_to)
+    open(write_types_to, 'a').close()
+except OSError:
+    pass
+
+device_types = np.loadtxt('../data/output/v2/device_types.csv', delimiter=',', dtype='str')[:, 0]
+device_classifier = DeviceTypeClassifier(model_folder='../data/random_forest/v2/model', num_features=features*finger_first_n, num_classes=num_classes)
 print('device classifier setup done')
 
 def port_mapper(port):
@@ -52,6 +62,17 @@ def mac_addr(address):
     """
     return ':'.join('%02x' % compat_ord(b) for b in address)
 
+def classify(F_cap, MAC):
+    x_classify = np.reshape(F_cap, [1, F_cap.size])
+    y_out = device_classifier.classify(x_classify)
+    print('new classification done')
+    save_name = '../data/output/' + str(MAC) + '_classify.csv'
+    np.savetxt(save_name, y_out, delimiter=',')
+    y_pick = np.argmax(y_out, axis=1)
+    results = device_types[y_pick[0]]
+    with open(write_types_to, "a") as file:
+        file.write("{}\t{}\n".format(MAC, results))
+        file.close()
 
 def add_packet_to_fingerprint(srcMAC, dstMAC, mac_counter, mac_capture, finger_num, col):
     # add to srcMAC fingerprint
@@ -61,19 +82,17 @@ def add_packet_to_fingerprint(srcMAC, dstMAC, mac_counter, mac_capture, finger_n
         mac_capture[srcMAC] = np.hstack((F_cap_temp, col))
         mac_counter[srcMAC] += 1
     elif counter_temp == finger_num:
-        mac_counter[dstMAC] += 1
+        mac_counter[srcMAC] += 1
         F_str_temp = flatten(F_cap_temp)
         result_temp = '-1' + '\t' + str(F_cap_temp.shape[0]) + '\t' + str(F_cap_temp.shape[1]) + '\t' + F_str_temp
         F = result_temp + '\n'
         with open('../data/output/' + str(srcMAC) + '.txt', "w") as file:
             file.write("%s" % F)
             file.close()
+
+    if (counter_temp == finger_first_n):
         # Classify this MAC
-        x_classify = F_cap_temp[:, :finger_first_n]
-        x_classify = np.reshape(x_classify, [1, x_classify.size])
-        y_out = device_classifier.classify(x_classify)
-        print('new classification done')
-        np.savetxt('../data/output/' + str(dstMAC) + '_classify.csv', y_out, delimiter=',')
+        classify(F_cap_temp, srcMAC)
 
     # add to dstMAC fingerprint
     counter_temp = mac_counter[dstMAC]
@@ -89,13 +108,9 @@ def add_packet_to_fingerprint(srcMAC, dstMAC, mac_counter, mac_capture, finger_n
         with open('../data/output/' + str(dstMAC) + '.txt', "w") as file:
             file.write("%s" % F)
             file.close()
-        
+    if (counter_temp == finger_first_n):
         # Classify this MAC
-        x_classify = F_cap_temp[:, :take_first_n]
-        x_classify = np.reshape(x_classify, [1, x_classify.size])
-        y_out = device_classifier.classify(x_classify)
-        print('new classification done')
-        np.savetxt('../data/output/' + str(dstMAC) + '_classify.csv', y_out, delimiter=',')
+        classify(F_cap_temp, dstMAC)
 
 sniffer = pcap.pcap(name=None, promisc=True, immediate=True)
 
