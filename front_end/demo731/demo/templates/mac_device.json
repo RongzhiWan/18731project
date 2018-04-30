@@ -1,0 +1,4 @@
+{
+    "mac_addr":"{{mac_device.mac_addr}}",
+    "device_type": "{{mac_device.device_type}}"
+}

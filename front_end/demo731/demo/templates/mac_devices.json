@@ -1,0 +1,6 @@
+{
+  "mac_devices":[{% for mac_device in mac_devices %}
+       {% include 'mac_device.json' %}
+       {% if not forloop.last %}, {% endif %}
+    {% endfor %}]
+}
