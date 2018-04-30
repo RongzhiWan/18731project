@@ -28,7 +28,7 @@ except OSError:
     pass
 
 device_types = np.loadtxt('../data/output/v2/device_types.csv', delimiter=',', dtype='str')[:, 0]
-device_classifier = DeviceTypeClassifier(model_folder='../data/random_forest/v2/model', num_features=features*finger_first_n, num_classes=num_classes)
+device_classifier = DeviceTypeClassifier(model_folder='../data/random_forest/v2/model_first150', num_features=features*finger_first_n, num_classes=num_classes)
 print('device classifier setup done')
 
 def port_mapper(port):
