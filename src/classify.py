@@ -7,6 +7,7 @@ import os
 import random
 import csv
 from pyxdameraulevenshtein import damerau_levenshtein_distance, normalized_damerau_levenshtein_distance
+import time
 
 device_type_num = 27
 feature_num = 23
@@ -316,6 +317,8 @@ def assign_type(classificaiton_result, ground_truth_fingerprints, test_fingerpri
         print "ERROR! testing data number and classification result number not match!"
         return -1
 
+    accuracy_dict = {}
+
     f_log = open("%s/log_%s.txt" %(log_path, log_name ), 'w')
     testing_device_num = len(classificaiton_result)
 
@@ -371,8 +374,21 @@ def assign_type(classificaiton_result, ground_truth_fingerprints, test_fingerpri
             # no correct candidate
             no_correct_candidate = "alert: no correct candidate!"
 
+
+        # calculate accuracy
+        if true_label not in accuracy_dict:
+            accuracy_dict[true_label] = [0,0]# correct,all
+
+        if device_type == true_label:
+            accuracy_dict[true_label][0] += 1#correct
+        accuracy_dict[true_label][1] += 1# all
+
+        print true_label
+        print accuracy_dict[true_label]
+
         log = "\ttesting data %d: potential_type_list %s\ttrue type %d, classified as type %d\t%s\tcurrent accuracy %f\t%s" %(i,tuple(potential_type_list),true_label,device_type,correctness,correct_cnt/(total_cnt),no_correct_candidate)
-        print log
+        #print log
+
 
         f_log.write(log + "\n")
         '''
@@ -384,7 +400,7 @@ def assign_type(classificaiton_result, ground_truth_fingerprints, test_fingerpri
         '''
         res.append(device_type)
 
-    return res
+    return res,accuracy_dict
 
 
 """---------------------------------------
@@ -630,12 +646,28 @@ def my_print(str):
     sys.stdout.write(str)
     sys.stdout.flush()
 
+def store_accuracy_dict(dict,type):
+
+    f_out = open(type + '_each_type_accuracy.txt','w')
+    for device_type in dict:
+        list = dict[device_type]
+        rate = list[0]/float(list[1])
+        print device_type, list[0], list[1]
+        f_out.write("%s\t%f\n" %(device_type,rate))
+    f_out.close()
+
+
+
+
 """--------------------------------------------------- main --------------------------------------------------------"""
 
 
 def main():
 
     global device_type_num
+
+    start = time.time()
+
 
     classification_result_path = sys.argv[1]
     training_file_dir = sys.argv[2]
@@ -655,7 +687,13 @@ def main():
 
     print("Classifying...")
     # classify input data
-    type_list = assign_type(classification_result, ground_truth_fingerprints, test_fingerprints, true_label_list,log_path)
+    type_list,accuray_dict = assign_type(classification_result, ground_truth_fingerprints, test_fingerprints, true_label_list,log_path)
+
+    end = time.time()
+    print "Time"
+    print(end - start)
+
+    store_accuracy_dict(accuray_dict,"old")
 
     one_hot_vector_list = gen_one_hot_vector(type_list,device_type_num)
     print "Done"
@@ -664,4 +702,67 @@ def main():
     persist(one_hot_vector_list, output_path)
     print "Result stored in \"%s\"" %(output_path)
 
-main()
+def cal_accuracy():
+
+    type_list = []
+    #for device_type in range(0,device_type_num):
+
+    glob_find = '{}/*.txt'.format("/Users/liuqing/Documents/18731project/data/output/v1")
+
+    for file in glob.glob(glob_find):
+        if file.find("README") != -1:
+            continue
+
+        f = open(file)
+
+        for line in f:
+            entry = line.rstrip()
+
+            cols = entry.split('\t')
+
+            type = int(cols[0])
+            type_list.append(type)
+
+
+    print len(type_list)
+    ###########
+
+    path = "/Users/liuqing/Documents/18731project/data/random_forest/v1/y_out.csv"
+    accuracy_dict = {}
+
+    res = np.loadtxt(path, delimiter=',')
+
+    #print res.shape
+
+    #cnt = 0
+
+   # with open(path) as f:
+        #for line in f:
+        #line_np.fromstring('1, 2', dtype=int, sep=',')
+
+
+    for i in range(res.shape[0]):
+    #for line in res:
+        line = res[i, :]
+
+        maxID = np.argmax(line)
+
+        type = type_list[i]
+        print line
+        print maxID,type,line[maxID]
+
+        # calculate accuracy
+        if type not in accuracy_dict:
+            accuracy_dict[type] = [0, 0]  # correct,all
+
+        if maxID == type:
+            accuracy_dict[type][0] += 1  # correct
+        accuracy_dict[type][1] += 1  # all
+
+        print "testing data %d, type %d, correct %d, all %d" %(i, type, accuracy_dict[type][0], accuracy_dict[type][1])
+
+    store_accuracy_dict(accuracy_dict, "new")
+
+
+#main()
+cal_accuracy()
