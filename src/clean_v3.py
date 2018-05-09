@@ -1,5 +1,6 @@
 import glob
 import os
+import socket
 
 import dpkt
 import numpy as np
@@ -17,9 +18,9 @@ FEATURES
 7.TCP  8.UDP
 9.HTTP  10.TSL/SSL  11.DHCP  12.BOOTP  13.SSDP  14.DNS  15.MDNS  16.NTP  17.Padding  18.RouterAlert
 19.Packet size (int)  20.Raw data length
-21.STUN
+21.dst IP addr
 22.Source port   23.Destination port
-24.MQTT 25.IGMP  26.TFTP  27.QUIC 
+24.MQTT 25.IGMP  26.TFTP  27.QUIC  28.STUN  29. src IP addr
 '''
 
 name_mapper = {}  # typeName<->number mapper
@@ -69,7 +70,7 @@ for type_path in glob.glob(os.path.join(path, '*/')):  # for each device
     else:
         type_mapper[type_str] = type_num
 
-    features = 28
+    features = 29
     F = ''
 
     for cap in glob.glob(os.path.join(type_path, '*.pcap')):  # for each capture
@@ -105,6 +106,14 @@ for type_path in glob.glob(os.path.join(path, '*/')):  # for each device
                 ip = eth.data
                 col[18, 0] = ip.len  # f19: Packet size
                 col[19, 0] = len(ip.data)  # f20: raw data length
+
+                dstIP = socket.inet_ntoa(ip.dst)
+                dstIPnum = dstIP.split('.')
+                col[20, 0] = int(''.join(dstIPnum))  # f21: dst ip addr
+
+                srcIP = socket.inet_ntoa(ip.src)
+                srcIPnum = srcIP.split('.')
+                col[28, 0] = int(''.join(srcIPnum))  # f29: src ip addr
 
                 if ip.opts.find(b'\x94\x04') != -1:
                     # print(ip.opts)
@@ -172,7 +181,7 @@ for type_path in glob.glob(os.path.join(path, '*/')):  # for each device
                     elif trans_port == 1883 or trans_port == 8883:
                         col[23, 0] = 1  # f24: MQTT
                     elif trans_port == 3478 or trans_port == 5349:
-                        col[20, 0] = 1  # f21: STUN
+                        col[27, 0] = 1  # f28: STUN
                 except AttributeError:
                     F_cap = np.hstack((F_cap, col))
                     continue
