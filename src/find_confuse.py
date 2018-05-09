@@ -24,7 +24,9 @@ def main(args):
 		correct = correct_y[i]
 		confusion[predict, correct] += 1
 		if (predict == correct): correct_num += 1
-	print('accuracy {}'.format(1.0 * correct_num / n))
+	for i in range(num_classes):
+		print('class {} accuracy {}'.format(i, 1.0 * confusion[i, i] / sum(confusion[:, i])))
+	print('total accuracy {}'.format(1.0 * correct_num / n))
 	np.savetxt(args.out, confusion, fmt='%d', delimiter=',')
 
 
