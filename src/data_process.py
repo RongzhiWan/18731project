@@ -6,7 +6,7 @@ import glob
 def random_forest_data_gather_save(dir_name, data_save_name):
     X = np.array([])
     Y = np.array([])
-    take_first_n = 30
+    take_first_n = 150
     glob_find = '{}/*.txt'.format(dir_name)
     c = 0
     for file in glob.glob(glob_find):
