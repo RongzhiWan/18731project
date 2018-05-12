@@ -1,0 +1,20 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [1][-]{section.2}{Related Work}{}% 2
+\BOOKMARK [1][-]{section.3}{Approach and Project Description}{}% 3
+\BOOKMARK [2][-]{subsection.3.1}{Fingerprint generation}{section.3}% 4
+\BOOKMARK [3][-]{subsubsection.3.1.1}{Traffic capture}{subsection.3.1}% 5
+\BOOKMARK [3][-]{subsubsection.3.1.2}{Feature extraction}{subsection.3.1}% 6
+\BOOKMARK [2][-]{subsection.3.2}{Classifiers}{section.3}% 7
+\BOOKMARK [3][-]{subsubsection.3.2.1}{Random forest}{subsection.3.2}% 8
+\BOOKMARK [3][-]{subsubsection.3.2.2}{Edit distance}{subsection.3.2}% 9
+\BOOKMARK [2][-]{subsection.3.3}{Unauthorized devices identification}{section.3}% 10
+\BOOKMARK [2][-]{subsection.3.4}{Real-time IoT device type identification application}{section.3}% 11
+\BOOKMARK [1][-]{section.4}{Challenges and problems}{}% 12
+\BOOKMARK [2][-]{subsection.4.1}{Setup environment}{section.4}% 13
+\BOOKMARK [2][-]{subsection.4.2}{Environment-dependent traffic}{section.4}% 14
+\BOOKMARK [2][-]{subsection.4.3}{Whitelist}{section.4}% 15
+\BOOKMARK [1][-]{section.5}{Results}{}% 16
+\BOOKMARK [2][-]{subsection.5.1}{Classifier experiments}{section.5}% 17
+\BOOKMARK [2][-]{subsection.5.2}{Feature engineering experiments}{section.5}% 18
+\BOOKMARK [1][-]{section.6}{Conclusion}{}% 19
+\BOOKMARK [1][-]{section.7}{Future work}{}% 20
